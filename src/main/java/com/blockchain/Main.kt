@@ -5,7 +5,6 @@ import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.security.MessageDigest
-import java.util.*
 
 fun main(args: Array<String>) {
     checkArgs(args)
@@ -101,13 +100,11 @@ private fun getFileContent(fileName: String): String =
 private fun getFileName(base: Int): String =
     "${Constants.PARENT_FOLDER_DIR}/${Constants.BLOCKCHAIN_DIR}/$base${Constants.EXTENSION}"
 
-private fun getHash(json: String): String = Base64
-    .getEncoder()
-    .encodeToString(
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(json.toByteArray(Charsets.UTF_8))
-    )
+private fun getHash(json: String): String = bytesToHex(
+    MessageDigest
+        .getInstance("SHA-256")
+        .digest(json.toByteArray(Charsets.UTF_8))
+)
 
 private fun saveNewFile(paths: String, json: String) {
     var outputStream: OutputStream? = null
@@ -141,6 +138,16 @@ private fun updateFile(file: File, newContent: String) {
             e.printStackTrace()
         }
     }
+}
+
+private fun bytesToHex(hash: ByteArray): String {
+    val hexString = StringBuffer()
+    for (i in hash.indices) {
+        val hex = Integer.toHexString(0xff and hash[i].toInt())
+        if (hex.length == 1) hexString.append('0')
+        hexString.append(hex)
+    }
+    return hexString.toString()
 }
 
 data class Block(
