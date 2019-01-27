@@ -1,6 +1,7 @@
 package com.blockchain
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -10,13 +11,52 @@ fun main(args: Array<String>) {
     checkArgs(args)
     createImageFolder(Constants.BLOCKCHAIN_DIR, Constants.PARENT_FOLDER_DIR)
     when (args[0]) {
-        "-r", "--read" -> getLastBlock(Constants.BLOCKCHAIN_DIR)
-        "-w", "--write" -> writeBlock(
-            getLastBlock("${Constants.PARENT_FOLDER_DIR}/${Constants.BLOCKCHAIN_DIR}"),
-            args.toMutableList().also {
-                it.removeAt(0)
-            })
+        "-r", "--read" -> {
+            readBlock(
+                getLastBlock("${Constants.PARENT_FOLDER_DIR}/${Constants.BLOCKCHAIN_DIR}")
+            )
+        }
+        "-w", "--write" -> {
+            writeBlock(
+                getLastBlock("${Constants.PARENT_FOLDER_DIR}/${Constants.BLOCKCHAIN_DIR}"),
+                args.toMutableList().also {
+                    it.removeAt(0)
+                }
+            )
+        }
     }
+}
+
+private fun readBlock(lastBlock: Int) {
+    val listOfContents: List<String> = getFileContent(getFileName(0)).split("\n")
+    val listOfHashes = mutableListOf<String>()
+    var dataJson: Block?
+
+    if (lastBlock > 1) {
+        println("Check from blocks: ")
+        for (it in 2..lastBlock) {
+            dataJson = jacksonObjectMapper().readValue(String(File(getFileName(it)).readBytes()), Block::class.java)
+            listOfHashes.add(getHash(getFileContent(getFileName(it - 1))))
+            if (dataJson.hash == listOfHashes[it - 2]) {
+                println("[Block: ${it - 1}] -> Readable")
+            } else {
+                println("[Block: ${it - 1}] -> Corrupted")
+            }
+        }
+    }
+
+    println()
+
+    listOfHashes.add(getHash(getFileContent(getFileName(lastBlock))))
+
+    listOfContents.forEachIndexed { index, element ->
+        if (element == listOfHashes[index]) {
+            println("[Block: ${index + 1}] -> Readable")
+        } else {
+            println("[Block: ${index + 1}] -> Corrupted")
+        }
+    }
+
 }
 
 private fun writeBlock(lastBlock: Int, args: MutableList<String>) {
